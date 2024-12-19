@@ -60,7 +60,6 @@ def rectify_imgs(
     cam1_to_body,
     baseline,
 ):
-    # Compute rotation and translation between the two cameras
     R = np.linalg.inv(cam1_to_body[:3, :3]) @ cam0_to_body[:3, :3]
     T = cam1_to_body[:3, 3] - cam0_to_body[:3, 3]
 
@@ -73,10 +72,9 @@ def rectify_imgs(
         (img0.shape[1], img0.shape[0]),
         R,
         T,
-        alpha=0,  # Alpha: 0 (crop) or 1 (retain all pixels)
+        alpha=0,
     )
 
-    # Compute rectification maps for each camera
     map1_x, map1_y = cv2.initUndistortRectifyMap(
         cam0_matrix,
         cam0_distortion_coeffs,
@@ -126,13 +124,10 @@ def compute_disparity_map(rect_img0, rect_img1, num_disparities=48, block_size=1
 
 
 def compute_depth_map(disparity_map, Q):
-    # Reproject disparity to 3D space
     points_3D = cv2.reprojectImageTo3D(disparity_map, Q)
 
-    # Extract depth values (z-coordinate in 3D space)
     depth_map = points_3D[:, :, 2]
 
-    # Handle invalid values (e.g., infinite depth or NaNs)
     depth_map[depth_map <= 0] = np.nan
     depth_map_normalized = cv2.normalize(
         depth_map, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX
@@ -142,48 +137,38 @@ def compute_depth_map(disparity_map, Q):
 
 
 def visualize_3D_matplotlib(points_3D, colors, num_points=10000):
-    # Downsample the point cloud for faster visualization if necessary
     if len(points_3D) > num_points:
         indices = np.random.choice(len(points_3D), num_points, replace=False)
         points_3D = points_3D[indices]
         colors = colors[indices]
 
-    # Create a 3D scatter plot
     fig = plt.figure(figsize=(10, 7))
     ax = fig.add_subplot(111, projection="3d")
 
-    # Plot the points
     ax.scatter(
         points_3D[:, 0],  # X-coordinates
         points_3D[:, 1],  # Y-coordinates
         points_3D[:, 2],  # Z-coordinates
-        c=colors / 255.0,  # Normalize colors to 0-1 for Matplotlib
+        c=colors / 255.0,  # Normalize 
         s=1,  # Point size
         marker=".",
     )
 
-    # Set axis labels
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.set_zlabel("Z")
-
-    # Set plot title
     ax.set_title("3D Point Cloud Visualization")
 
     plt.show()
 
 
 def generate_3D_points(disparity_map, rect_img0, Q):
-    # Reproject disparity map to 3D
     points_3D = cv2.reprojectImageTo3D(disparity_map, Q)
 
-    # Get color information from the left rectified image
     colors = cv2.cvtColor(rect_img0, cv2.COLOR_BGR2RGB)
 
-    # Create a mask for valid disparity values
     mask = disparity_map > disparity_map.min()
 
-    # Filter valid 3D points and corresponding colors
     points_3D = points_3D[mask]
     colors = colors[mask]
 
