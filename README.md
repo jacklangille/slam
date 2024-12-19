@@ -1,4 +1,4 @@
-# Visual Intertial - Simultaneous Localization and Mapping (VI-SLAM) from Scratch!
+# Visual Intertial - Simultaneous Localization and Mapping (VI-SLAM) from Scratch! (HEAVY WIP)
 ### SLAM
 - SLAM is a technique used to build a map of an unknown environment while simultaneously keeping track of the camera's position within it.
 
