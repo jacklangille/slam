@@ -15,5 +15,6 @@
 - Loop closure detection
 - Trajectory visualization 
 - Map visualization
-
+- Optimizee 
+- Organize and comment code
 
