@@ -1,11 +1,12 @@
 import os
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 
+MX_KP_PER_CELL = 250
+GRID_SZ = (20,20)
 
 def filter_keypoints_and_descriptors(
-    keypoints, descriptors, h, w, grid_size=(20, 20), max_per_cell=250
+    keypoints, descriptors, h, w, grid_size=GRID_SZ, max_per_cell=MX_KP_PER_CELL
 ):
     cell_h, cell_w = h // grid_size[0], w // grid_size[1]
     selected_kps = []
@@ -45,7 +46,6 @@ def match_points(des0, des1, kp0, kp1, img0, img1, dist_threshold=50):
         None,
         flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS,
     )
-
     return matches, match_frame
 
 
@@ -83,6 +83,7 @@ def rectify_imgs(
         (img0.shape[1], img0.shape[0]),
         cv2.CV_32FC1,
     )
+
     map2_x, map2_y = cv2.initUndistortRectifyMap(
         cam1_matrix,
         cam1_distortion_coeffs,
@@ -97,10 +98,13 @@ def rectify_imgs(
 
     return rect_img0, rect_img1, Q
 
+def compute_disparity_map(rect_img0, rect_img1, num_disparities=48, block_size=5):
+    """
+    Produces a disparity map between two stereo rectified images.
+    """
 
-def compute_disparity_map(rect_img0, rect_img1, num_disparities=48, block_size=10):
     stereo = cv2.StereoSGBM_create(
-        minDisparity=0,
+        minDisparity=0,                     
         numDisparities=num_disparities,  # Range of disparity
         blockSize=block_size,
         P1=8 * 3 * block_size**2,  # Penalty on disparity changes
@@ -124,8 +128,12 @@ def compute_disparity_map(rect_img0, rect_img1, num_disparities=48, block_size=1
 
 
 def compute_depth_map(disparity_map, Q):
-    points_3D = cv2.reprojectImageTo3D(disparity_map, Q)
+    """
 
+    """
+
+
+    points_3D = cv2.reprojectImageTo3D(disparity_map, Q)
     depth_map = points_3D[:, :, 2]
 
     depth_map[depth_map <= 0] = np.nan
@@ -134,64 +142,6 @@ def compute_depth_map(disparity_map, Q):
     )
     depth_map_normalized = np.uint8(depth_map_normalized)
     return depth_map
-
-
-def visualize_3D_matplotlib(points_3D, colors, num_points=10000):
-    if len(points_3D) > num_points:
-        indices = np.random.choice(len(points_3D), num_points, replace=False)
-        points_3D = points_3D[indices]
-        colors = colors[indices]
-
-    fig = plt.figure(figsize=(10, 7))
-    ax = fig.add_subplot(111, projection="3d")
-
-    ax.scatter(
-        points_3D[:, 0],  # X-coordinates
-        points_3D[:, 1],  # Y-coordinates
-        points_3D[:, 2],  # Z-coordinates
-        c=colors / 255.0,  # Normalize 
-        s=1,  # Point size
-        marker=".",
-    )
-
-    ax.set_xlabel("X")
-    ax.set_ylabel("Y")
-    ax.set_zlabel("Z")
-    ax.set_title("3D Point Cloud Visualization")
-
-    plt.show()
-
-
-def generate_3D_points(disparity_map, rect_img0, Q):
-    points_3D = cv2.reprojectImageTo3D(disparity_map, Q)
-
-    colors = cv2.cvtColor(rect_img0, cv2.COLOR_BGR2RGB)
-
-    mask = disparity_map > disparity_map.min()
-
-    points_3D = points_3D[mask]
-    colors = colors[mask]
-
-    return points_3D, colors
-
-
-def save_point_cloud_ply(filename, points_3D, colors):
-
-    with open(filename, "w") as file:
-        file.write("ply\n")
-        file.write("format ascii 1.0\n")
-        file.write(f"element vertex {len(points_3D)}\n")
-        file.write("property float x\n")
-        file.write("property float y\n")
-        file.write("property float z\n")
-        file.write("property uchar red\n")
-        file.write("property uchar green\n")
-        file.write("property uchar blue\n")
-        file.write("end_header\n")
-        for point, color in zip(points_3D, colors):
-            file.write(
-                f"{point[0]} {point[1]} {point[2]} {color[0]} {color[1]} {color[2]}\n"
-            )
 
 
 def main_loop(
@@ -241,14 +191,12 @@ def main_loop(
         )
         combined_frame = cv2.hconcat([img0_kp, img1_kp])
 
-        # Compute disparity map
         disparity_map = compute_disparity_map(
             gray_img0, gray_img1, num_disparities=16, block_size=5
         )
 
         disparity_colormap = cv2.applyColorMap(disparity_map, cv2.COLORMAP_JET)
 
-        # Visualize disparity map
         cv2.imshow("Disparity Map", disparity_colormap)
 
         depth_map = compute_depth_map(disparity_map, Q)
@@ -258,12 +206,8 @@ def main_loop(
         cv2.imshow("Feature Extraction - Rectified Stereo Feed", combined_frame)
 
         # cv2.imshow("Feature Matching - Rectified Stereo Feed", match_frame)
-        points_3D, colors = generate_3D_points(disparity_map, img0, Q)
         if cv2.waitKey(30) & 0xFF == ord("q"):
             break
-
-    visualize_3D_matplotlib(points_3D, colors)
-    save_point_cloud_ply("reconstruction.ply", points_3D, colors)
 
     cv2.destroyAllWindows()
 
