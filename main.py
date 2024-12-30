@@ -3,7 +3,8 @@ import cv2
 import numpy as np
 
 MX_KP_PER_CELL = 250
-GRID_SZ = (20,20)
+GRID_SZ = (20, 20)
+
 
 def filter_keypoints_and_descriptors(
     keypoints, descriptors, h, w, grid_size=GRID_SZ, max_per_cell=MX_KP_PER_CELL
@@ -98,13 +99,14 @@ def rectify_imgs(
 
     return rect_img0, rect_img1, Q
 
+
 def compute_disparity_map(rect_img0, rect_img1, num_disparities=48, block_size=5):
     """
     Produces a disparity map between two stereo rectified images.
     """
 
     stereo = cv2.StereoSGBM_create(
-        minDisparity=0,                     
+        minDisparity=0,
         numDisparities=num_disparities,  # Range of disparity
         blockSize=block_size,
         P1=8 * 3 * block_size**2,  # Penalty on disparity changes
@@ -128,11 +130,6 @@ def compute_disparity_map(rect_img0, rect_img1, num_disparities=48, block_size=5
 
 
 def compute_depth_map(disparity_map, Q):
-    """
-
-    """
-
-
     points_3D = cv2.reprojectImageTo3D(disparity_map, Q)
     depth_map = points_3D[:, :, 2]
 
@@ -198,7 +195,6 @@ def main_loop(
         disparity_colormap = cv2.applyColorMap(disparity_map, cv2.COLORMAP_JET)
 
         cv2.imshow("Disparity Map", disparity_colormap)
-
         depth_map = compute_depth_map(disparity_map, Q)
 
         cv2.imshow("Depth Map", depth_map)
