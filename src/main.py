@@ -8,36 +8,37 @@ from modules.disparity import compute_disparity_map, compute_depth_map
 
 
 def main_loop(
-    cam0_images,
-    cam1_images,
-    cam0_matrix,
-    cam1_matrix,
-    cam0_distortion_coeffs,
-    cam1_distortion_coeffs,
-    cam0_to_body,
-    cam1_to_body,
+    c0_images,
+    c1_images,
+    C0_MATRIX,
+    C1_MATRIX,
+    C0_DIST_COEFFS,
+    C1_DIST_COEFFS,
+    C0_TO_BODY,
+    C1_TO_BODY,
     baseline,
 ):
     orb = cv2.ORB_create()
-    for img0_name, img1_name in zip(cam0_images, cam1_images):
+    for img0_name, img1_name in zip(c0_images, c1_images):
         img0 = cv2.imread(f"./mav0/cam0/data/{img0_name}")
         img1 = cv2.imread(f"./mav0/cam1/data/{img1_name}")
 
         img0, img1, Q = rectify_imgs(
             img0,
             img1,
-            cam0_matrix,
-            cam1_matrix,
-            cam0_distortion_coeffs,
-            cam1_distortion_coeffs,
-            cam0_to_body,
-            cam1_to_body,
+            C0_MATRIX,
+            C1_MATRIX,
+            C0_DIST_COEFFS,
+            C1_DIST_COEFFS,
+            C0_TO_BODY,
+            C1_TO_BODY,
             baseline,
         )
 
         # Convert rectified images to grayscale
-        gray_img0 = cv2.cvtColor(img0, cv2.COLOR_BGR2GRAY)
-        gray_img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+        gray_img0, gray_img1 = cv2.cvtColor(img0, cv2.COLOR_BGR2GRAY), cv2.cvtColor(
+            img1, cv2.COLOR_BGR2GRAY
+        )
 
         h, w = img0.shape[:2]
         kp0, des0 = orb.detectAndCompute(img0, None)
