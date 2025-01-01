@@ -58,17 +58,14 @@ def main_loop(
         disparity_map = compute_disparity_map(
             gray_img0, gray_img1, num_disparities=16, block_size=5
         )
-
+        depth_map = compute_depth_map(disparity_map, Q)
         disparity_colormap = cv2.applyColorMap(disparity_map, cv2.COLORMAP_JET)
 
         cv2.imshow("Disparity Map", disparity_colormap)
-        depth_map = compute_depth_map(disparity_map, Q)
-
         cv2.imshow("Depth Map", depth_map)
-
         cv2.imshow("Feature Extraction - Rectified Stereo Feed", combined_frame)
+        cv2.imshow("Feature Matching - Rectified Stereo Feed", match_frame)
 
-        # cv2.imshow("Feature Matching - Rectified Stereo Feed", match_frame)
         if cv2.waitKey(30) & 0xFF == ord("q"):
             break
 
